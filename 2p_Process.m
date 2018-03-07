@@ -1,4 +1,6 @@
 %% Processing 2photon Data for Map-Mapping 
+    % marcus.ghosh.11@ucl.ac.uk
+    
  %This script batch proccess's data from our (Rihel) 2photon 
   %To make it compatible with the Z-brain map-mapping scripts 
    %Maps these stacks into the reference brain
