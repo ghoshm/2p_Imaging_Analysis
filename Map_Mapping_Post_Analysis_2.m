@@ -73,7 +73,7 @@ for e = 1:size(folder,1) %For each experiment
                 pERK(:,:,slice) = double(imread(strcat('C:\map_mapping\perk_exp\registration\MapMapping\Post_Analysis\'...
                 ,folder(e).name,'\',version(v).name,'\',group(g).name,'\',...
                 sample(s+1).name),slice)); %Read the pERK sample
-                end; 
+                end 
             
                 tERK(tERK == 0) = NaN; %Make Zero Values = NaN (tERK)
                 pERK(pERK == 0) = NaN; %Make Zero Values = NaN (pERK)
@@ -187,7 +187,7 @@ activity_pattern(1:679,1:300,1:80) = NaN;
 for slice = 1:80 %For each slice  
        activity_pattern(:,:,slice) = double(imread(strcat(pathname,... 
            filename),slice));          
-end; 
+end
 
 clear filename pathname
 
