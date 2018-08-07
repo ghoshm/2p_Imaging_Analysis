@@ -7,111 +7,111 @@
   %ShadedErrorBars 
    %http://uk.mathworks.com/matlabcentral/fileexchange/26311-shadederrorbar
   
-%% Reformatting the Images 
+%% Reformatting the Images
 
-% For ICA Owen carries out the following filtering steps: 
- % Downsample size to 679*300*80  
- % Smooth with a Gaussian filter (alpha = 2) 
- % Sample the central brain into voxels 
- % Remove samples with many missing values and voxels with any missing
-   %values 
- % Normalise each fish for brightness 
- 
+% For ICA Owen carries out the following filtering steps:
+% Downsample size to 679*300*80
+% Smooth with a Gaussian filter (alpha = 2)
+% Sample the central brain into voxels
+% Remove samples with many missing values and voxels with any missing
+%values
+% Normalise each fish for brightness
+
 % The first two filtering steps can be achieved by loading
- % Map-Mapping Images from the Source folder (post-smoothing, down-sizing
-  % etc)
+% Map-Mapping Images from the Source folder (post-smoothing, down-sizing
+% etc)
 
 %Load in Owen's Masks
- %This Contains: 
-  %A logical stack mask of the whole brain 
-  %A vectorised/voxel map of the whole brain 
+%This Contains:
+%A logical stack mask of the whole brain
+%A vectorised/voxel map of the whole brain
 tic
-  load('Vector_Masks.mat')
- 
-%Open data of interest from the Post-analysis folder 
- %This should contain downsized and smoothed "Source" images
+load('Vector_Masks.mat');
 
-folder = dir2('C:\map_mapping\perk_exp\registration\MapMapping\Post_Analysis'); 
+%Open data of interest from the Post-analysis folder
+%This should contain downsized and smoothed "Source" images
+
+folder = dir2('C:\map_mapping\perk_exp\registration\MapMapping\Post_Analysis');
 
 progressbar('Experiment','Version','Group','Sample') %Initialise progress bars
 for e = 1:size(folder,1) %For each experiment
-    
-    version = dir2(strcat('C:\map_mapping\perk_exp\registration\MapMapping\Post_Analysis\'...
-        ,folder(e).name)); %Open the experiment folder
-    
-    for v = 1:size(version,1) %For each version
-        
-        group = dir2(strcat('C:\map_mapping\perk_exp\registration\MapMapping\Post_Analysis\'...
-            ,folder(e).name,'\',version(v).name)); %Open the version folder
-        
-        for g = 1:size(group,1) %For each group
-            
-            sample = dir2(strcat('C:\map_mapping\perk_exp\registration\MapMapping\Post_Analysis\'...
-                ,folder(e).name,'\',version(v).name,'\',group(g).name)); %Open the group folder (Het, Hom, WT)
-            
-            %Read the Samples into doubles, cut the central brain out,
-             %Convert to voxels and store linear pERK/tERK
-             %vectors
-            a = 1; %Start a counter
-            for s = 1:2:size(sample,1) %For each sample 
-                
-                %Generate NaN Matracies in two channels 
-                tERK(1:679,1:300,1:80) = NaN;  
-                pERK(1:679,1:300,1:80) = NaN;  
-                
-                tERKVec(1:size(BrainPixelLabelsVec,1),1) = NaN; 
-                pERKVec(1:size(BrainPixelLabelsVec,1),1) = NaN; 
-                
-                tERKInVoxels(1,1:max(BrainPixelLabelsVec)) = NaN; 
-                pERKInVoxels(1,1:max(BrainPixelLabelsVec)) = NaN; 
 
-                for slice = 1:80 %For each slice  
-                tERK(:,:,slice) = double(imread(strcat('C:\map_mapping\perk_exp\registration\MapMapping\Post_Analysis\'...
-                ,folder(e).name,'\',version(v).name,'\',group(g).name,'\',...
-                sample(s).name),slice)); %Read the tERK sample
-                
-                pERK(:,:,slice) = double(imread(strcat('C:\map_mapping\perk_exp\registration\MapMapping\Post_Analysis\'...
-                ,folder(e).name,'\',version(v).name,'\',group(g).name,'\',...
-                sample(s+1).name),slice)); %Read the pERK sample
-                end 
-            
-                tERK(tERK == 0) = NaN; %Make Zero Values = NaN (tERK)
-                pERK(pERK == 0) = NaN; %Make Zero Values = NaN (pERK)
-                
-                tERKVec = tERK(BrainPixelLabelsKeep); %Mask/vectorise the signals (px)
-                pERKVec = pERK(BrainPixelLabelsKeep); %Mask/vectorise the signals (px)
-                
-                %Convert to Voxels - this downsample reduces the data from 3 million
-                 %pixels to 300,000 voxels
-                 %Binning roughly 10px (mean) into every voxel
-                tERKInVoxels(1,:) = accumarray(BrainPixelLabelsVec, tERKVec, [], @nanmean);
-                pERKInVoxels(1,:) = accumarray(BrainPixelLabelsVec, pERKVec, [], @nanmean);
-            
-            %Store each channel seperately 
-            tERK_data{e}{v}{g}(a,:) = tERKInVoxels;  
-            pERK_data{e}{v}{g}(a,:) = pERKInVoxels; 
-            
-            %Store linear pERK/tERK vector 
-            pERK_tERK_data{e}{v}{g}(a,:) = pERKInVoxels./tERKInVoxels;   
-            a = a + 1; %Add to counter
-            
-            clear tERK pERK tERKVec pERKVec pERKInVoxels tERKInVoxels
-             progressbar([],[],[],s/size(sample,1)); %Update sample progress bar 
-            end
-             
-            clear sample 
-         progressbar([],[],g/size(group,1)); %Update the group progress bar
-        end
-        
-        clear group
-     progressbar([],v/size(version,1)); %Update the version progress bar 
-    end
-    
-  clear version
- progressbar(e/size(folder,1)); %Update the experiment progress bar   
+   version = dir2(strcat('C:\map_mapping\perk_exp\registration\MapMapping\Post_Analysis\'...
+       ,folder(e).name)); %Open the experiment folder
+
+   for v = 1:size(version,1) %For each version
+
+       group = dir2(strcat('C:\map_mapping\perk_exp\registration\MapMapping\Post_Analysis\'...
+           ,folder(e).name,'\',version(v).name)); %Open the version folder
+
+       for g = 1:size(group,1) %For each group
+
+           sample = dir2(strcat('C:\map_mapping\perk_exp\registration\MapMapping\Post_Analysis\'...
+               ,folder(e).name,'\',version(v).name,'\',group(g).name)); %Open the group folder (Het, Hom, WT)
+
+           %Read the Samples into doubles, cut the central brain out,
+           %Convert to voxels and store linear pERK/tERK
+           %vectors
+           a = 1; %Start a counter
+           for s = 1:2:size(sample,1) %For each sample
+
+               %Generate NaN Matracies in two channels
+               tERK(1:679,1:300,1:80) = NaN; % stacks
+               pERK(1:679,1:300,1:80) = NaN; % stacks
+
+               tERKVec(1:size(BrainPixelLabelsVec,1),1) = NaN; % pixels vector
+               pERKVec(1:size(BrainPixelLabelsVec,1),1) = NaN; % pixels vector
+
+               tERKInVoxels(1,1:max(BrainPixelLabelsVec)) = NaN; % voxels
+               pERKInVoxels(1,1:max(BrainPixelLabelsVec)) = NaN; % voxels
+
+               for slice = 1:80 %For each slice
+                   tERK(:,:,slice) = double(imread(strcat('C:\map_mapping\perk_exp\registration\MapMapping\Post_Analysis\'...
+                       ,folder(e).name,'\',version(v).name,'\',group(g).name,'\',...
+                       sample(s).name),slice)); %Read the tERK sample
+
+                   pERK(:,:,slice) = double(imread(strcat('C:\map_mapping\perk_exp\registration\MapMapping\Post_Analysis\'...
+                       ,folder(e).name,'\',version(v).name,'\',group(g).name,'\',...
+                       sample(s+1).name),slice)); %Read the pERK sample
+               end
+
+               tERK(tERK == 0) = NaN; %Make Zero Values = NaN (tERK)
+               pERK(pERK == 0) = NaN; %Make Zero Values = NaN (pERK)
+
+               tERKVec = tERK(BrainPixelLabelsKeep); %Mask/vectorise the signals (px)
+               pERKVec = pERK(BrainPixelLabelsKeep); %Mask/vectorise the signals (px)
+
+               %Convert to Voxels - this downsample reduces the data from 3 million
+               %pixels to 300,000 voxels
+               %Binning roughly 10px (mean) into every voxel
+               tERKInVoxels(1,:) = accumarray(BrainPixelLabelsVec, tERKVec, [], @nanmean);
+               pERKInVoxels(1,:) = accumarray(BrainPixelLabelsVec, pERKVec, [], @nanmean);
+
+               %Store each channel seperately
+               tERK_data{e}{v}{g}(a,:) = tERKInVoxels;
+               pERK_data{e}{v}{g}(a,:) = pERKInVoxels;
+
+               %Store linear pERK/tERK vector
+               pERK_tERK_data{e}{v}{g}(a,:) = pERKInVoxels./tERKInVoxels;
+               a = a + 1; %Add to counter
+
+               clear tERK pERK tERKVec pERKVec pERKInVoxels tERKInVoxels
+               progressbar([],[],[],s/size(sample,1)); %Update sample progress bar
+           end
+
+           clear sample
+           progressbar([],[],g/size(group,1)); %Update the group progress bar
+       end
+
+       clear group
+       progressbar([],v/size(version,1)); %Update the version progress bar
+   end
+
+   clear version
+   progressbar(e/size(folder,1)); %Update the experiment progress bar
 end
-  
-clearvars -except tERK_data pERK_data  pERK_tERK_data BrainPixelLabelsVec BrainPixelLabelsKeep    
+
+clearvars -except tERK_data pERK_data pERK_tERK_data BrainPixelLabelsVec BrainPixelLabelsKeep
 toc
 
 %% Pre-analysis Filtering 
