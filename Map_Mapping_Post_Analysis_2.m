@@ -251,7 +251,7 @@ r = rectangle('Position',[14 y_lims(1) 10 (y_lims(2)-y_lims(1))],...
     'FaceColor',night_color{1},'Edgecolor',[1 1 1]);
 uistack(r,'bottom'); % Send to back
 
-axis([0 24 y_lims]); 
+axis([0 23 y_lims]); 
 ylabel('pERK/tERK','Fontsize',32); 
 set(gca,'XTick',[0.5 13.5 21.5]);
 set(gca,'XTickLabel',{'09:30','22:30','06:30'},'Fontsize',32); 
