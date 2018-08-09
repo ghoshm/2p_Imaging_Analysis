@@ -116,13 +116,23 @@ toc
 
 %% Pre-analysis Filtering 
 
+% Tags 
+i_time_tags = []; 
+i_experiment_tags = []; 
+i_group_tags = []; % (1. Het, 2. Hom, 3. WT) 
+
 %Build a single matrix for the data 
 all_data = []; 
+counter = 1; 
 for e = 1:size(pERK_tERK_data,2) % For each experiment 
     for v = 1:size(pERK_tERK_data{e},2) % For each version 
         for g = 1:size(pERK_tERK_data{e}{v},2) % For each group 
             all_data = [all_data ; pERK_tERK_data{e}{v}{g}];
+            i_time_tags = [i_time_tags ; ones(size(pERK_tERK_data{e}{v}{g},1),1)*e]; % time tags  
+            i_experiment_tags = [i_experiment_tags ; ones(size(pERK_tERK_data{e}{v}{g},1),1)*counter]; % experiment tags  
+            i_group_tags = [i_group_tags ; ones(size(pERK_tERK_data{e}{v}{g},1),1)*g]; % group tags  
         end 
+        counter = counter + 1; % counts experiments  
     end 
 end 
 
@@ -137,10 +147,11 @@ end
     VoxelsWithNaN = sum(isnan(all_data), 1)>0; %Creates a logical marking NaN Columns
      %Note this logical is particularly useful as you can use it later to
       %To crop other signals to match the dataset 
+      % 1 where there are all NaN values 
       
 % Keep track of with Voxels Need to be filled back in
-    VoxelsToReExpand = true(size(VoxelsWithNaN));
-    VoxelsToReExpand(VoxelsWithNaN) = 0;
+    VoxelsToReExpand = true(size(VoxelsWithNaN)); % ones  
+    VoxelsToReExpand(VoxelsWithNaN) = 0; % zeros where there are NaN values 
     
     %Remove Columns with NaN from the datasets   
     for e = 1:size(pERK_tERK_data,2) % For each experiment
@@ -162,11 +173,11 @@ end
 % 
 %     meanVoxel = mean(pERK_tERK_Matrix, 1); % subtract the mean from each voxel
 %     pERK_tERK_Matrix = pERK_tERK_Matrix - repmat(meanVoxel, [size(pERK_tERK_Matrix, 1), 1]);
-
+    
 %% Building in pERK/tERK Activity Patterns 
 
 %Load in Vector masks 
-load('C:\Users\Marcus\Documents\MATLAB\Z-Brain\Vector_Masks.mat')
+load('C:\Users\Marcus\Documents\MATLAB\Z-Brain\Vector_Masks.mat');
 
 %Load in the activity pattern 
  %Note - you need to split the channels first (1 = down, 2 = up)
@@ -204,11 +215,117 @@ activity_pattern_InVoxels(1,:) = accumarray(BrainPixelLabelsVec, activity_patter
 activity_pattern_mask = activity_pattern_InVoxels > 0; %Generate Logical Mask from the activity pattern 
 
 %Crop out the voxels with NaN that were removed from pERK_tERK_Matrix 
-activity_pattern_mask(:,VoxelsWithNaN) = [];
+%activity_pattern_mask(:,VoxelsWithNaN) = [];
 
 %This mask can now be applied to pERK/tERK signals etc (see sections below) 
 
-%% Voxel Analysis 
+%% Voxel Analysis - 2 
+load('D:\Behaviour\SleepWake\Re_Runs\Threading\Thesis\180731.mat', 'cmap');
+load('D:\Behaviour\SleepWake\Re_Runs\Threading\Thesis\180731.mat', 'night_color'); 
+cmap = [cmap{1}(2,:) ; cmap{1}(3,:) ; cmap{1}(1,:)]; % Organise Colors: Het, Hom, WT   
+masked_data = nanmean(all_data(:,activity_pattern_mask),2); % fish x 1  
+times = [13.5 0.5 21.5]; % 22:30, 09:30, 06:30   
+
+%% Figure 
+figure; hold on; 
+set(gca,'FontName','Calibri'); box off; set(gca,'Layer','top'); set(gca,'Fontsize',32);
+for g = [1 3 2] % for Het, WT, Hom 
+    
+    for t = [2 1 3] % for 09:30, 22:30, 06:30 
+        errorbar(times(t),nanmean(masked_data(i_group_tags == g & i_time_tags == t,1)),...
+            nanstd(masked_data(i_group_tags == g & i_time_tags == t,1))/...
+            sqrt(sum(i_group_tags == g & i_time_tags == t)),...
+            'color',cmap(g,:),'linewidth',3,...
+            'markersize',24,'capsize',12);
+        n(t,g) = sum(i_group_tags == g & i_time_tags == t); 
+        scrap(t) = nanmean(masked_data(i_group_tags == g & i_time_tags == t,1)); 
+    end
+    
+    legend_lines(g) = plot([times(2) times(1) times(3)],[scrap(2) scrap(1) scrap(3)],...
+        'color',cmap(g,:),'linewidth',3); 
+
+end
+y_lims = [0.425 0.65]; % hard coded 
+
+r = rectangle('Position',[14 y_lims(1) 10 (y_lims(2)-y_lims(1))],...
+    'FaceColor',night_color{1},'Edgecolor',[1 1 1]);
+uistack(r,'bottom'); % Send to back
+
+axis([0 24 y_lims]); 
+ylabel('pERK/tERK','Fontsize',32); 
+set(gca,'XTick',[0.5 13.5 21.5]);
+set(gca,'XTickLabel',{'09:30','22:30','06:30'},'Fontsize',32); 
+xlabel('Time','Fontsize',32); 
+legend([legend_lines(3) legend_lines(1) legend_lines(2)],...
+    'CHD8^{+/+}','CHD8^{-/+}','CHD8^{-/-}','location','southeast'); 
+legend('Boxoff');
+
+%% Day/Night PCA 
+
+dn_data = all_data_filtered(i_group_tags == 3,:); 
+dn_data = zscore(dn_data,[],2); 
+
+[coeff,score,~,~,explained,~] = pca(dn_data); % pca
+dn_data_tsne = tsne(score(:,1:11),...
+    'Algorithm','exact','Exaggeration',4,'NumDimensions',2,'NumPCAComponents',0,...
+    'Perplexity',30,'Standardize',1,'Verbose',1);
+
+load('D:\Behaviour\SleepWake\Re_Runs\Threading\Draft_1\Post_Bout_Transitions.mat', 'cmap_2');
+n = 3; 
+cmap_2 = [linspace(cmap_2{1,1}(1,1),cmap_2{1,1}(2,1),n)'...
+    linspace(cmap_2{1,1}(1,2),cmap_2{1,1}(2,2),n)'...
+    linspace(cmap_2{1,1}(1,3),cmap_2{1,1}(2,3),n)']; 
+cmap_2 = [cmap_2(2,:) ; cmap_2(1,:) ; cmap_2(3,:)]; 
+
+%% Day/Night Figure 
+er = 3; % wt 
+
+% Sorted Voxels 
+clf; 
+subplot(1,2,1); hold on;
+set(gca,'FontName','Calibri'); box off; set(gca,'Layer','top'); set(gca,'Fontsize',32);
+data = dn_data; 
+dn = grpstats(dn_data,i_time_tags(i_group_tags == 3),'mean');
+[~,O] = sort(dn(1,:) - dn(2,:));
+data = data(:,O); 
+data = [sortrows(data(i_time_tags(i_group_tags == 3) == 2,:),'descend') ; ...
+    sortrows(data(i_time_tags(i_group_tags == 3) == 1,:),'descend') ;
+    sortrows(data(i_time_tags(i_group_tags == 3) == 3,:),'descend')]; % sort fish (seperatly by time-point)
+imagesc(flip(zscore(data)),[-0.5 0.5]); % imagesc 
+axis tight 
+
+% colormap 
+n = 15; % number of colours 
+CT = [linspace(cmap_2(1,1),1,n)'...
+    linspace(cmap_2(1,2),1,n)'...
+    linspace(cmap_2(1,3),1,n)']; 
+CT = [CT ; [linspace(1,cmap_2(3,1),n)'...
+    linspace(1,cmap_2(3,2),n)'...
+    linspace(1,cmap_2(3,3),n)']]; 
+CT(n,:) = []; % remove repeat 
+CT = flip(CT); % flip colormap 
+colormap(CT); 
+
+% tSNE Plot 
+subplot(1,2,2); hold on;
+set(gca,'FontName','Calibri'); box off; set(gca,'Layer','top'); set(gca,'Fontsize',32);
+
+for t = 1:max(i_time_tags(i_group_tags == er)) % for each time  
+    
+    l(t) = scatter(dn_data_tsne(i_time_tags(i_group_tags == er) == t,1),...
+        dn_data_tsne(i_time_tags(i_group_tags == er) == t,2),360,...
+        'markerfacecolor',cmap_2(t,:),'markeredgecolor',cmap_2(t,:),...
+        'markerfacealpha',0.75);     
+end 
+l = [l(2) l(3) l(1)]; % re-arrange l. 
+set(gca,'XTick',[]); 
+set(gca,'YTick',[]); 
+xlabel('tSNE 1','FontSize',32); 
+ylabel('tSNE 2','FontSize',32); 
+legend(l,{'09:30','22:30','06:30'},'location','northeast');
+legend('boxoff');
+
+%% Voxel Analysis - Old
 
 %Applying the mask 
 for e = 1:size(pERK_tERK_data,2) % For each experiment
