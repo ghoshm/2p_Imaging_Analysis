@@ -219,6 +219,30 @@ activity_pattern_mask = activity_pattern_InVoxels > 0; %Generate Logical Mask fr
 
 %This mask can now be applied to pERK/tERK signals etc (see sections below) 
 
+%% Data for N-ANOVA
+am(1,:) = activity_pattern_mask; 
+clearvars -except am
+
+am(2,:) = activity_pattern_mask; 
+clearvars -except am 
+
+load('C:\Users\Marcus\Documents\Thesis\Figures\Activity_Mapping\180807.mat');
+
+%% ANOVA 
+masked_data(:,1) = nanmean(all_data(:,am(1,:)),2); 
+masked_data(:,2) = nanmean(all_data(:,am(2,:)),2); 
+
+data = masked_data(i_group_tags ~= 1,:); % remove Het's 
+data = data(:); 
+
+anova_group = repmat(i_group_tags(i_group_tags ~=1,1),2,1); % group 
+anova_time = repmat(i_time_tags(i_group_tags ~=1,1),2,1); % time 
+anova_lr = [zeros(length(anova_time)/2,1) ; ones(length(anova_time)/2,1)]; % left/right 
+
+[twa.p,~,twa.stats] = anovan(data,...
+    {anova_group,anova_time,anova_lr},...
+    'display','off','model','full');
+
 %% Voxel Analysis - 2 
 load('D:\Behaviour\SleepWake\Re_Runs\Threading\Thesis\180731.mat', 'cmap');
 load('D:\Behaviour\SleepWake\Re_Runs\Threading\Thesis\180731.mat', 'night_color'); 
@@ -245,7 +269,7 @@ for g = [1 3 2] % for Het, WT, Hom
         'color',cmap(g,:),'linewidth',3); 
 
 end
-y_lims = [0.425 0.65]; % hard coded 
+y_lims = [0.2 0.4]; % hard coded 
 
 r = rectangle('Position',[14 y_lims(1) 10 (y_lims(2)-y_lims(1))],...
     'FaceColor',night_color{1},'Edgecolor',[1 1 1]);
