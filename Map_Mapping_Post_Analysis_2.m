@@ -228,7 +228,7 @@ clearvars -except am
 
 load('C:\Users\Marcus\Documents\Thesis\Figures\Activity_Mapping\180807.mat');
 
-%% ANOVA 
+%% ANOVA - 2 Groups 
 masked_data(:,1) = nanmean(all_data(:,am(1,:)),2); 
 masked_data(:,2) = nanmean(all_data(:,am(2,:)),2); 
 
@@ -237,7 +237,22 @@ data = data(:);
 
 anova_group = repmat(i_group_tags(i_group_tags ~=1,1),2,1); % group 
 anova_time = repmat(i_time_tags(i_group_tags ~=1,1),2,1); % time 
-anova_lr = [zeros(length(anova_time)/2,1) ; ones(length(anova_time)/2,1)]; % left/right 
+anova_lr = [zeros(length(anova_time)/2,1) ; ones(length(anova_time)/2,1)]; % right/left 
+
+[twa.p,~,twa.stats] = anovan(data,...
+    {anova_group,anova_time,anova_lr},...
+    'display','off','model','full');
+
+%% ANOVA - 3 Groups  
+masked_data(:,1) = nanmean(all_data(:,am(1,:)),2); 
+masked_data(:,2) = nanmean(all_data(:,am(2,:)),2); 
+
+data = masked_data; 
+data = data(:); 
+
+anova_group = repmat(i_group_tags,2,1); % group 
+anova_time = repmat(i_time_tags,2,1); % time 
+anova_lr = [zeros(length(anova_time)/2,1) ; ones(length(anova_time)/2,1)]; % right/left 
 
 [twa.p,~,twa.stats] = anovan(data,...
     {anova_group,anova_time,anova_lr},...
@@ -250,17 +265,47 @@ cmap = [cmap{1}(2,:) ; cmap{1}(3,:) ; cmap{1}(1,:)]; % Organise Colors: Het, Hom
 masked_data = nanmean(all_data(:,activity_pattern_mask),2); % fish x 1  
 times = [13.5 0.5 21.5]; % 22:30, 09:30, 06:30   
 
+%% Figure - V2 
+figure; hold on; 
+set(gca,'FontName','Calibri'); box off; set(gca,'Layer','top'); set(gca,'Fontsize',32);
+offset = -1; 
+for g = [3 1 2] % for WT, Het, Hom 
+    
+    scrap = grpstats(masked_data(i_group_tags == g),i_time_tags(i_group_tags == g),'mean');
+    
+    legend_lines(g) = plot([times(2) times(1) times(3)]+offset,[scrap(2) scrap(1) scrap(3)],...
+        'color',cmap(g,:),'linewidth',3);
+
+    for t = [2 1 3] % for 09:30, 22:30, 06:30 
+        spread_cols = plotSpread(masked_data(i_group_tags == g & i_time_tags == t,1),...
+            'XValues',times(t) + offset,'distributionColors', cmap(g,:),'showMM',2);    
+            spread_cols{2}.LineWidth = 3; spread_cols{2}.Color = 'k'; % Change marker properties
+    end
+    offset = offset + 1;
+end
+set(findall(gca,'type','line'),'markersize',20); % change marker sizes
+
+y_lims = [.15 1]; 
+
+axis([-1 23 y_lims]); 
+ylabel('pERK/tERK','Fontsize',32); 
+set(gca,'XTick',[0.5 13.5 21.5]);
+set(gca,'XTickLabel',{'09:30','22:30','06:30'},'Fontsize',32); 
+xlabel('Time','Fontsize',32); 
+ legend([legend_lines(3) legend_lines(1) legend_lines(2)],...
+     '\itchd8^{+/+}','\itchd8^{-/+}','\itchd8^{-/-}','location','southwest'); 
+legend('Boxoff');
+
 %% Figure 
 figure; hold on; 
 set(gca,'FontName','Calibri'); box off; set(gca,'Layer','top'); set(gca,'Fontsize',32);
-for g = [1 3 2] % for Het, WT, Hom 
+for g = [1 2 3] % for Het, Hom WT 
     
     for t = [2 1 3] % for 09:30, 22:30, 06:30 
         errorbar(times(t),nanmean(masked_data(i_group_tags == g & i_time_tags == t,1)),...
-            nanstd(masked_data(i_group_tags == g & i_time_tags == t,1))/...
-            sqrt(sum(i_group_tags == g & i_time_tags == t)),...
+            nanstd(masked_data(i_group_tags == g & i_time_tags == t,1)),'O',...
             'color',cmap(g,:),'linewidth',3,...
-            'markersize',24,'capsize',12);
+            'markersize',15,'capsize',12);
         n(t,g) = sum(i_group_tags == g & i_time_tags == t); 
         scrap(t) = nanmean(masked_data(i_group_tags == g & i_time_tags == t,1)); 
     end
@@ -269,7 +314,7 @@ for g = [1 3 2] % for Het, WT, Hom
         'color',cmap(g,:),'linewidth',3); 
 
 end
-y_lims = [0.2 0.4]; % hard coded 
+y_lims = [0.35 0.75]; % hard coded 
 
 r = rectangle('Position',[14 y_lims(1) 10 (y_lims(2)-y_lims(1))],...
     'FaceColor',night_color{1},'Edgecolor',[1 1 1]);
@@ -281,7 +326,7 @@ set(gca,'XTick',[0.5 13.5 21.5]);
 set(gca,'XTickLabel',{'09:30','22:30','06:30'},'Fontsize',32); 
 xlabel('Time','Fontsize',32); 
 legend([legend_lines(3) legend_lines(1) legend_lines(2)],...
-    'CHD8^{+/+}','CHD8^{-/+}','CHD8^{-/-}','location','southeast'); 
+    '\itchd8^{+/+}','\itchd8^{-/+}','\itchd8^{-/-}','location','southwest'); 
 legend('Boxoff');
 
 %% Day/Night PCA 
